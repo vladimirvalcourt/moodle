@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/aicourse/db" VERSION="20260101" COMMENT="Database schema for AI Course Generation plugin">
+    <TABLES>
+        <!-- AI Course Drafts -->
+        <TABLE NAME="local_aicourse_drafts" COMMENT="Stores AI-generated course drafts before publication">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Instructor who created the draft"/>
+                <FIELD NAME="course_title" TYPE="char" LENGTH="500" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="topic_description" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="target_audience" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="beginner, intermediate, advanced, mixed"/>
+                <FIELD NAME="estimated_duration" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Duration in minutes"/>
+                <FIELD NAME="learning_objectives" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="generated_outline" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON-encoded course outline"/>
+                <FIELD NAME="generated_content" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON-encoded full course content"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="draft" SEQUENCE="false" COMMENT="draft, review, approved, rejected, published"/>
+                <FIELD NAME="ai_provider" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="openai, claude, etc."/>
+                <FIELD NAME="model_version" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="generation_metadata" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON metadata (tokens, cost, etc.)"/>
+                <FIELD NAME="published_course_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="ID of published course if applicable"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+                <KEY NAME="published_course" TYPE="foreign" FIELDS="published_course_id" REFTABLE="course" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="user_status" UNIQUE="false" FIELDS="user_id, status"/>
+                <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- AI Generation History -->
+        <TABLE NAME="local_aicourse_history" COMMENT="Audit trail for AI generations">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="draft_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="prompt_input" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Prompt sent to AI"/>
+                <FIELD NAME="prompt_output" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Raw AI response"/>
+                <FIELD NAME="quality_score" TYPE="number" LENGTH="3" NOTNULL="false" DECIMALS="2" SEQUENCE="false" COMMENT="Auto-calculated quality 0-100"/>
+                <FIELD NAME="instructor_feedback" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="revision_number" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="draft" TYPE="foreign" FIELDS="draft_id" REFTABLE="local_aicourse_drafts" REFFIELDS="id" ONDELETE="cascade"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="draft_revision" UNIQUE="false" FIELDS="draft_id, revision_number"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Learning Paths -->
+        <TABLE NAME="local_aicourse_paths" COMMENT="Personalized learning paths for students">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Learner"/>
+                <FIELD NAME="course_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="recommended_modules" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of module IDs in order"/>
+                <FIELD NAME="completed_modules" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of completed module IDs"/>
+                <FIELD NAME="current_position" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="proficiency_level" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="novice, developing, proficient, expert"/>
+                <FIELD NAME="last_accessed" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course_id" REFTABLE="course" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="user_course" UNIQUE="true" FIELDS="user_id, course_id"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- AI-Generated Assessments -->
+        <TABLE NAME="local_aicourse_assessments" COMMENT="Questions generated by AI">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="draft_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="module_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Which module this belongs to"/>
+                <FIELD NAME="question_type" TYPE="char" LENGTH="30" NOTNULL="true" SEQUENCE="false" COMMENT="multiple_choice, true_false, short_answer, essay"/>
+                <FIELD NAME="question_text" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="options" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON for MCQ options"/>
+                <FIELD NAME="correct_answer" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why this answer is correct"/>
+                <FIELD NAME="difficulty_level" TYPE="int" LENGTH="2" NOTNULL="false" SEQUENCE="false" COMMENT="1-5"/>
+                <FIELD NAME="bloom_taxonomy" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="Remember, Understand, Apply, Analyze, Evaluate, Create"/>
+                <FIELD NAME="is_active" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="draft" TYPE="foreign" FIELDS="draft_id" REFTABLE="local_aicourse_drafts" REFFIELDS="id" ONDELETE="cascade"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="draft_module" UNIQUE="false" FIELDS="draft_id, module_id"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Quality Metrics -->
+        <TABLE NAME="local_aicourse_quality" COMMENT="Quality assessment scores for AI content">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="draft_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="readability_score" TYPE="number" LENGTH="5" NOTNULL="false" DECIMALS="2" SEQUENCE="false"/>
+                <FIELD NAME="engagement_score" TYPE="number" LENGTH="5" NOTNULL="false" DECIMALS="2" SEQUENCE="false"/>
+                <FIELD NAME="accuracy_flags" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of potential inaccuracies"/>
+                <FIELD NAME="completeness_score" TYPE="number" LENGTH="5" NOTNULL="false" DECIMALS="2" SEQUENCE="false"/>
+                <FIELD NAME="bias_detection" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Detected biases or issues"/>
+                <FIELD NAME="overall_score" TYPE="number" LENGTH="5" NOTNULL="false" DECIMALS="2" SEQUENCE="false"/>
+                <FIELD NAME="reviewed_by" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Human reviewer user ID"/>
+                <FIELD NAME="review_notes" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="draft" TYPE="foreign" FIELDS="draft_id" REFTABLE="local_aicourse_drafts" REFFIELDS="id" ONDELETE="cascade"/>
+                <KEY NAME="reviewer" TYPE="foreign" FIELDS="reviewed_by" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="draft_score" UNIQUE="false" FIELDS="draft_id, overall_score"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Learner Progress Tracking -->
+        <TABLE NAME="local_aicourse_progress" COMMENT="Track learner progress through AI-generated courses">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Learner ID"/>
+                <FIELD NAME="course_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="module_index" TYPE="int" LENGTH="5" NOTNULL="true" SEQUENCE="false" COMMENT="Module index in course"/>
+                <FIELD NAME="lesson_index" TYPE="int" LENGTH="5" NOTNULL="true" SEQUENCE="false" COMMENT="Lesson index within module"/>
+                <FIELD NAME="completed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether lesson is completed"/>
+                <FIELD NAME="timespent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time spent in seconds"/>
+                <FIELD NAME="timecompleted" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When lesson was completed"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course_id" REFTABLE="course" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="user_course" UNIQUE="false" FIELDS="user_id, course_id"/>
+                <INDEX NAME="completion_status" UNIQUE="false" FIELDS="user_id, course_id, completed"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Certificates Issued -->
+        <TABLE NAME="local_aicourse_certificates" COMMENT="Track issued completion certificates">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Learner who received certificate"/>
+                <FIELD NAME="course_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="certificate_id" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Unique certificate identifier"/>
+                <FIELD NAME="issued_date" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course_id" REFTABLE="course" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="user_course" UNIQUE="true" FIELDS="user_id, course_id"/>
+                <INDEX NAME="certificate_id" UNIQUE="true" FIELDS="certificate_id"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- User Points & Gamification -->
+        <TABLE NAME="local_aicourse_users" COMMENT="Track user gamification points">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Moodle user ID"/>
+                <FIELD NAME="total_points" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Accumulated badge points"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="points_ranking" UNIQUE="false" FIELDS="total_points DESC"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Badges Awarded -->
+        <TABLE NAME="local_aicourse_badges" COMMENT="Track awarded badges and achievements">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User who earned badge"/>
+                <FIELD NAME="badge_key" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Badge identifier"/>
+                <FIELD NAME="badge_name" TYPE="char" LENGTH="200" NOTNULL="true" SEQUENCE="false" COMMENT="Display name"/>
+                <FIELD NAME="badge_description" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Badge description"/>
+                <FIELD NAME="badge_icon" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Emoji icon"/>
+                <FIELD NAME="points" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Points awarded"/>
+                <FIELD NAME="awarded_date" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="user" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="user_badge" UNIQUE="true" FIELDS="user_id, badge_key"/>
+                <INDEX NAME="awarded_date" UNIQUE="false" FIELDS="awarded_date DESC"/>
+            </INDEXES>
+        </TABLE>
+    </TABLES>
+</XMLDB>
