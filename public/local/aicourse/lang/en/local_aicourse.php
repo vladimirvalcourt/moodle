@@ -145,3 +145,15 @@ $string['yourlearningpath'] = 'Your Personalized Learning Path';
 $string['estimatedcompletion'] = 'Estimated completion time: {$a} minutes';
 $string['nextstep'] = 'Your Next Step';
 $string['viewcourse'] = 'View Course';
+
+// Supabase Integration.
+$string['supabase_configuration'] = 'Supabase Backend Configuration';
+$string['supabase_url'] = 'Supabase Project URL';
+$string['supabase_url_desc'] = 'Your Supabase project URL (e.g., https://xxxxx.supabase.co)';
+$string['supabase_anon_key'] = 'Supabase Anon Key';
+$string['supabase_anon_key_desc'] = 'Public anon key from Supabase dashboard';
+$string['supabase_service_key'] = 'Supabase Service Role Key';
+$string['supabase_service_key_desc'] = 'Secret service role key (keep secure! Used for server-side operations)';
+$string['enable_supabase'] = 'Enable Supabase Integration';
+$string['enable_supabase_desc'] = 'Use Supabase as backend for AI features, analytics, and progress tracking';
+$string['test_connection'] = 'Test Connection';

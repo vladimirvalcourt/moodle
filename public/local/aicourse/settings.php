@@ -164,6 +164,90 @@ if ($hassiteconfig) {
         1
     ));
     
+    // Supabase Integration Section
+    $settings->add(new admin_setting_heading(
+        'local_aicourse/supabase_config',
+        get_string('supabase_configuration', 'local_aicourse', 'Supabase Backend Configuration'),
+        ''
+    ));
+    
+    // Supabase Project URL
+    $settings->add(new admin_setting_configtext(
+        'local_aicourse/supabase_url',
+        get_string('supabase_url', 'local_aicourse', 'Supabase Project URL'),
+        get_string('supabase_url_desc', 'local_aicourse', 'Your Supabase project URL (e.g., https://xxxxx.supabase.co)'),
+        '',
+        PARAM_URL,
+        60
+    ));
+    
+    // Supabase Anon Key
+    $settings->add(new admin_setting_configtext(
+        'local_aicourse/supabase_anon_key',
+        get_string('supabase_anon_key', 'local_aicourse', 'Supabase Anon Key'),
+        get_string('supabase_anon_key_desc', 'local_aicourse', 'Public anon key from Supabase dashboard'),
+        '',
+        PARAM_TEXT,
+        80
+    ));
+    
+    // Supabase Service Role Key (stored securely)
+    $settings->add(new admin_setting_configpasswordunmask(
+        'local_aicourse/supabase_service_key',
+        get_string('supabase_service_key', 'local_aicourse', 'Supabase Service Role Key'),
+        get_string('supabase_service_key_desc', 'local_aicourse', 'Secret service role key (keep secure! Used for server-side operations)'),
+        ''
+    ));
+    
+    // Enable Supabase integration toggle
+    $settings->add(new admin_setting_configcheckbox(
+        'local_aicourse/enable_supabase',
+        get_string('enable_supabase', 'local_aicourse', 'Enable Supabase Integration'),
+        get_string('enable_supabase_desc', 'local_aicourse', 'Use Supabase as backend for AI features, analytics, and progress tracking'),
+        0
+    ));
+    
+    // Test Connection Button
+    $settings->add(new admin_setting_description(
+        'local_aicourse/test_connection_info',
+        get_string('test_connection', 'local_aicourse', 'Test Connection'),
+        '<button type="button" id="test-supabase-connection" class="btn btn-secondary">Test Supabase Connection</button>
+         <span id="connection-status"></span>
+         <script>
+         require(["jquery"], function($) {
+             $(document).ready(function() {
+                 $("#test-supabase-connection").on("click", function() {
+                     var url = $("input[name=\"s_local_aicourse[supabase_url]\"]").val();
+                     var key = $("input[name=\"s_local_aicourse[supabase_anon_key]\"]").val();
+                     
+                     if (!url || !key) {
+                         $("#connection-status").html("<span style=\"color:red;\">Please fill in URL and Anon Key first</span>");
+                         return;
+                     }
+                     
+                     $("#connection-status").html("<span style=\"color:blue;\">Testing...</span>");
+                     
+                     $.ajax({
+                         url: M.cfg.wwwroot + "/local/aicourse/ajax/test_supabase.php",
+                         method: "POST",
+                         data: { url: url, key: key },
+                         success: function(response) {
+                             if (response.success) {
+                                 $("#connection-status").html("<span style=\"color:green;\">✓ Connection successful!</span>");
+                             } else {
+                                 $("#connection-status").html("<span style=\"color:red;\">✗ " + response.error + "</span>");
+                             }
+                         },
+                         error: function() {
+                             $("#connection-status").html("<span style=\"color:red;\">✗ Request failed</span>");
+                         }
+                     });
+                 });
+             });
+         });
+         </script>'
+    ));
+    
     // Add the settings page to admin tree
     $ADMIN->add('localplugins', $settings);
 }
